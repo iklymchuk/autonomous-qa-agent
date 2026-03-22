@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — DemoApp</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+    .logo { text-align: center; font-size: 24px; font-weight: 700; color: #2c3e50; margin-bottom: 8px; }
+    .subtitle { text-align: center; color: #888; margin-bottom: 32px; font-size: 14px; }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; color: #444; }
+    input[type="email"], input[type="password"] {
+      width: 100%; padding: 12px 16px; border: 1px solid #ddd; border-radius: 8px;
+      font-size: 15px; outline: none; transition: border-color 0.2s;
+    }
+    input:focus { border-color: #3498db; }
+    .btn-submit { width: 100%; padding: 14px; background: #3498db; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
+    .btn-submit:hover { background: #2980b9; }
+    .error { background: #fee; border: 1px solid #fcc; color: #c00; padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 14px; }
+    .hint { text-align: center; color: #aaa; font-size: 12px; margin-top: 16px; }
+    .back { display: block; text-align: center; color: #3498db; text-decoration: none; margin-top: 16px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">🤖 DemoApp</div>
+    <div class="subtitle">Sign in to your account</div>
+
+    {% if error %}
+    <div class="error" id="login-error">{{ error }}</div>
+    {% endif %}
+
+    <form id="login-form" method="post" action="/login">
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input type="email" id="email" name="email" placeholder="admin@test.com" required autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
+      </div>
+      <button type="submit" id="login-submit" class="btn-submit">Sign In</button>
+    </form>
+
+    <p class="hint">Demo credentials: admin@test.com / password123</p>
+    <a class="back" href="/">← Back to home</a>
+  </div>
+</body>
+</html>

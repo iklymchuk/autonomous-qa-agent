@@ -1,0 +1,63 @@
+[tool.poetry]
+name = "autonomous-qa-agent"
+version = "0.1.0"
+description = "Zero-config AI-powered autonomous QA platform using Playwright + OpenAI"
+authors = ["SDET Architect"]
+readme = "README.md"
+packages = [{include = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+playwright = "^1.49.0"
+openai = "^1.57.0"
+typer = {extras = ["all"], version = "0.12.5"}
+  click = ">=8.1.0,<8.2.0"
+rich = "^13.9.0"
+jinja2 = "^3.1.4"
+pillow = "^11.0.0"
+pydantic = "^2.10.0"
+pytest = "^8.3.0"
+pytest-asyncio = "^0.24.0"
+pytest-playwright = "^0.5.2"
+pytest-json-report = "^1.5.0"
+flask = "^3.1.0"
+python-dotenv = "^1.0.1"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.8.0"
+mypy = "^1.13.0"
+pytest-cov = "^6.0.0"
+types-pillow = "^10.2.0"
+types-jinja2 = "^2.11.9"
+
+[tool.poetry.scripts]
+qa-agent = "src.cli.main:app"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+fail_under = 80
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

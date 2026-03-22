@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QA Report — {{ run_data.config.url }} — {{ run_data.run_id }}</title>
+  <style>
+    :root {
+      --bg: #0f0f0f; --surface: #1a1a1a; --surface2: #242424;
+      --border: #333; --text: #e0e0e0; --muted: #888;
+      --critical: #ff4444; --high: #ff8800; --medium: #ffcc00; --low: #44ff88;
+      --pass: #44bb77; --fail: #ff4444; --skip: #888888;
+      --accent: #4a9eff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.6; }
+    .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+    /* Header */
+    .header { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 24px; }
+    .header h1 { font-size: 24px; color: var(--accent); margin-bottom: 8px; }
+    .header-meta { display: flex; flex-wrap: wrap; gap: 16px; color: var(--muted); font-size: 12px; }
+    .header-meta span strong { color: var(--text); }
+
+    /* Cards */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+    .card h2 { font-size: 16px; color: var(--accent); margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+
+    /* Summary Grid */
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .summary-stat { background: var(--surface2); border-radius: 6px; padding: 16px; text-align: center; }
+    .summary-stat .value { font-size: 32px; font-weight: 700; }
+    .summary-stat .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-pass .value { color: var(--pass); }
+    .stat-fail .value { color: var(--fail); }
+    .stat-skip .value { color: var(--skip); }
+    .stat-score .value { color: var(--accent); }
+
+    /* Severity Badges */
+    .severity-grid { display: flex; gap: 12px; flex-wrap: wrap; }
+    .severity-badge { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 13px; }
+    .badge-critical { background: rgba(255,68,68,0.15); border: 1px solid var(--critical); color: var(--critical); }
+    .badge-high { background: rgba(255,136,0,0.15); border: 1px solid var(--high); color: var(--high); }
+    .badge-medium { background: rgba(255,204,0,0.15); border: 1px solid var(--medium); color: var(--medium); }
+    .badge-low { background: rgba(68,255,136,0.15); border: 1px solid var(--low); color: var(--low); }
+    .badge-count { font-size: 20px; font-weight: 700; }
+
+    /* Pass Rate Donut */
+    .summary-top { display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: center; }
+    .donut-container { text-align: center; }
+    .donut-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; padding: 8px 12px; background: var(--surface2); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* Status badges */
+    .status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .status-passed { background: rgba(68,187,119,0.15); color: var(--pass); }
+    .status-failed { background: rgba(255,68,68,0.15); color: var(--fail); }
+    .status-skipped { background: rgba(136,136,136,0.15); color: var(--skip); }
+    .severity-cell-critical { color: var(--critical); font-weight: 600; }
+    .severity-cell-high { color: var(--high); font-weight: 600; }
+    .severity-cell-medium { color: var(--medium); font-weight: 600; }
+    .severity-cell-low { color: var(--low); font-weight: 600; }
+
+    /* Code blocks */
+    pre { background: #0a0a0a; border: 1px solid var(--border); border-radius: 6px; padding: 16px; overflow-x: auto; font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; }
+    code { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; }
+
+    /* Error messages */
+    .error-text { color: var(--fail); font-size: 12px; font-family: monospace; max-height: 120px; overflow-y: auto; }
+    .repro-steps { margin: 0; padding-left: 16px; color: var(--muted); font-size: 12px; }
+    .repro-steps li { margin-bottom: 2px; }
+
+    /* Accessibility */
+    .wcag-score { font-size: 48px; font-weight: 700; color: var(--accent); }
+    .wcag-label { color: var(--muted); font-size: 12px; }
+    .impact-critical { color: var(--critical); }
+    .impact-serious { color: var(--high); }
+    .impact-moderate { color: var(--medium); }
+    .impact-minor { color: var(--low); }
+
+    /* Visual diffs */
+    .visual-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .visual-card { text-align: center; }
+    .visual-card img { width: 100%; border: 1px solid var(--border); border-radius: 4px; max-height: 200px; object-fit: contain; }
+    .visual-card .visual-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .change-pct { font-weight: 700; color: var(--accent); }
+
+    /* Crawl map */
+    .crawl-map { font-family: monospace; font-size: 12px; line-height: 1.8; color: var(--muted); }
+    .crawl-url { color: var(--text); }
+    .crawl-error { color: var(--fail); }
+
+    /* Collapsible */
+    details summary { cursor: pointer; padding: 8px; background: var(--surface2); border-radius: 4px; color: var(--muted); font-size: 12px; }
+    details summary:hover { color: var(--text); }
+    details[open] summary { margin-bottom: 8px; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .summary-top { grid-template-columns: 1fr; }
+      .visual-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1>🤖 AutonomousQA Report</h1>
+    <div class="header-meta">
+      <span><strong>URL:</strong> {{ run_data.config.url }}</span>
+      <span><strong>Run ID:</strong> {{ run_data.run_id }}</span>
+      <span><strong>Started:</strong> {{ run_data.started_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</span>
+      <span><strong>Duration:</strong> {{ "%.1f"|format(run_data.duration_seconds) }}s</span>
+      <span><strong>Playwright:</strong> {{ run_data.playwright_version }}</span>
+      <span><strong>Browsers:</strong> {{ run_data.config.browsers | join(', ') }}</span>
+      <span><strong>Crawl Depth:</strong> {{ run_data.config.max_depth }}</span>
+    </div>
+  </div>
+
+  <!-- EXECUTIVE SUMMARY -->
+  <div class="card">
+    <h2>Executive Summary</h2>
+    <div class="summary-top">
+      <!-- Donut Chart (inline SVG) -->
+      <div class="donut-container">
+        {% set total = run_data.execution_result.total if run_data.execution_result else 0 %}
+        {% set passed = run_data.execution_result.passed if run_data.execution_result else 0 %}
+        {% set failed = run_data.execution_result.failed if run_data.execution_result else 0 %}
+        {% set pass_rate = (passed / total * 100) if total > 0 else 0 %}
+        {% set circumference = 251.2 %}
+        {% set pass_dash = (pass_rate / 100) * circumference %}
+        <svg width="120" height="120" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="40" fill="none" stroke="#333" stroke-width="12"/>
+          <circle cx="60" cy="60" r="40" fill="none" stroke="#44bb77" stroke-width="12"
+            stroke-dasharray="{{ "%.1f"|format(pass_dash) }} {{ "%.1f"|format(circumference) }}"
+            stroke-dashoffset="62.8" transform="rotate(-90 60 60)"/>
+          <text x="60" y="55" text-anchor="middle" fill="#e0e0e0" font-size="16" font-weight="700">{{ "%.0f"|format(pass_rate) }}%</text>
+          <text x="60" y="72" text-anchor="middle" fill="#888" font-size="9">pass rate</text>
+        </svg>
+        <div class="donut-label">{{ passed }}/{{ total }} tests passed</div>
+      </div>
+
+      <div>
+        <div class="summary-grid">
+          <div class="summary-stat stat-pass">
+            <div class="value">{{ passed }}</div>
+            <div class="label">Passed</div>
+          </div>
+          <div class="summary-stat stat-fail">
+            <div class="value">{{ failed }}</div>
+            <div class="label">Failed</div>
+          </div>
+          <div class="summary-stat stat-skip">
+            <div class="value">{{ run_data.execution_result.skipped if run_data.execution_result else 0 }}</div>
+            <div class="label">Skipped</div>
+          </div>
+          <div class="summary-stat stat-score">
+            <div class="value">{{ run_data.flows | length }}</div>
+            <div class="label">Flows Found</div>
+          </div>
+          {% if run_data.a11y_report %}
+          <div class="summary-stat stat-score">
+            <div class="value">{{ "%.0f"|format(run_data.a11y_report.wcag_score) }}</div>
+            <div class="label">WCAG Score</div>
+          </div>
+          {% endif %}
+          {% if run_data.crawl_result %}
+          <div class="summary-stat">
+            <div class="value" style="color: var(--accent)">{{ run_data.crawl_result.total_pages }}</div>
+            <div class="label">Pages Crawled</div>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Severity Breakdown -->
+        <div class="severity-grid">
+          <div class="severity-badge badge-critical">
+            <span class="badge-count">{{ run_data.severity_breakdown.get('CRITICAL', 0) }}</span>
+            CRITICAL
+          </div>
+          <div class="severity-badge badge-high">
+            <span class="badge-count">{{ run_data.severity_breakdown.get('HIGH', 0) }}</span>
+            HIGH
+          </div>
+          <div class="severity-badge badge-medium">
+            <span class="badge-count">{{ run_data.severity_breakdown.get('MEDIUM', 0) }}</span>
+            MEDIUM
+          </div>
+          <div class="severity-badge badge-low">
+            <span class="badge-count">{{ run_data.severity_breakdown.get('LOW', 0) }}</span>
+            LOW
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEST RESULTS -->
+  {% if run_data.execution_result %}
+  <div class="card">
+    <h2>Test Results</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Test Name</th>
+          <th>Status</th>
+          <th>Duration</th>
+          <th>Severity</th>
+          <th>Error / Reproduction Steps</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for test in run_data.execution_result.tests %}
+        {% set scored = run_data.scored_failures | selectattr('test_name', 'equalto', test.name) | first | default(None) %}
+        <tr>
+          <td><code>{{ test.name }}</code></td>
+          <td><span class="status status-{{ test.status }}">{{ test.status }}</span></td>
+          <td>{{ "%.2f"|format(test.duration) }}s</td>
+          <td>
+            {% if scored %}
+            <span class="severity-cell-{{ scored.severity | lower }}">{{ scored.severity }}</span>
+            {% elif test.status == 'failed' %}
+            <span class="severity-cell-medium">MEDIUM</span>
+            {% else %}
+            <span style="color: var(--muted)">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if test.status == 'failed' %}
+              {% if test.error_message %}
+              <div class="error-text">{{ test.error_message[:300] }}</div>
+              {% endif %}
+              {% if scored and scored.reproduction_steps %}
+              <ol class="repro-steps">
+                {% for step in scored.reproduction_steps %}
+                <li>{{ step }}</li>
+                {% endfor %}
+              </ol>
+              {% endif %}
+              {% if scored and scored.reason %}
+              <div style="color: var(--muted); font-size: 11px; margin-top: 4px;"><em>{{ scored.reason }}</em></div>
+              {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- GENERATED TEST FILE -->
+  {% if test_code %}
+  <div class="card">
+    <h2>Generated Test File</h2>
+    <details>
+      <summary>View generated_tests.py ({{ test_code.split('\n') | length }} lines)</summary>
+      <pre><code>{{ test_code | e }}</code></pre>
+    </details>
+  </div>
+  {% endif %}
+
+  <!-- ACCESSIBILITY REPORT -->
+  {% if run_data.a11y_report %}
+  <div class="card">
+    <h2>Accessibility Report (WCAG 2.1 AA)</h2>
+    <div style="display: flex; align-items: center; gap: 32px; margin-bottom: 20px;">
+      <div>
+        <div class="wcag-score">{{ "%.0f"|format(run_data.a11y_report.wcag_score) }}</div>
+        <div class="wcag-label">/ 100 WCAG Score</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <span class="impact-critical">● Critical violations: {{ run_data.a11y_report.by_impact.get('critical', 0) }} (−20 pts each)</span>
+        <span class="impact-serious">● Serious violations: {{ run_data.a11y_report.by_impact.get('serious', 0) }} (−10 pts each)</span>
+        <span class="impact-moderate">● Moderate violations: {{ run_data.a11y_report.by_impact.get('moderate', 0) }} (−5 pts each)</span>
+        <span class="impact-minor">● Minor violations: {{ run_data.a11y_report.by_impact.get('minor', 0) }} (−1 pt each)</span>
+      </div>
+    </div>
+
+    {% if run_data.a11y_report.violations %}
+    <table>
+      <thead>
+        <tr>
+          <th>Rule</th>
+          <th>Impact</th>
+          <th>Description</th>
+          <th>Page</th>
+          <th>Affected Elements</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for violation in run_data.a11y_report.violations %}
+        <tr>
+          <td><code>{{ violation.rule_id }}</code></td>
+          <td><span class="impact-{{ violation.impact }}">{{ violation.impact | upper }}</span></td>
+          <td>{{ violation.description }}</td>
+          <td style="color: var(--muted); font-size: 12px;">{{ violation.page_url }}</td>
+          <td style="font-size: 12px;">
+            {% for node in violation.nodes[:3] %}
+            <code style="display: block; color: var(--muted);">{{ node.selector }}</code>
+            {% endfor %}
+            {% if violation.nodes | length > 3 %}
+            <span style="color: var(--muted)">+{{ violation.nodes | length - 3 }} more</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="color: var(--pass);">✓ No accessibility violations found!</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- VISUAL DIFFS -->
+  {% if run_data.visual_diff_result and run_data.visual_diff_result.diffs %}
+  <div class="card">
+    <h2>Visual Diffs</h2>
+    {% for diff in run_data.visual_diff_result.diffs %}
+    <div style="margin-bottom: 24px;">
+      <div style="margin-bottom: 8px;">
+        <strong>{{ diff.url }}</strong>
+        <span class="change-pct" style="margin-left: 12px;">{{ "%.2f"|format(diff.change_pct) }}% changed</span>
+      </div>
+      <div class="visual-grid">
+        <div class="visual-card">
+          {% if before_images.get(diff.url) %}
+          <img src="data:image/png;base64,{{ before_images[diff.url] }}" alt="Before">
+          {% endif %}
+          <div class="visual-label">Before</div>
+        </div>
+        <div class="visual-card">
+          {% if after_images.get(diff.url) %}
+          <img src="data:image/png;base64,{{ after_images[diff.url] }}" alt="After">
+          {% endif %}
+          <div class="visual-label">After</div>
+        </div>
+        <div class="visual-card">
+          {% if diff_images.get(diff.url) %}
+          <img src="data:image/png;base64,{{ diff_images[diff.url] }}" alt="Diff">
+          {% endif %}
+          <div class="visual-label">Diff (red = changed)</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- CRAWL MAP -->
+  {% if run_data.crawl_result %}
+  <div class="card">
+    <h2>Crawl Map</h2>
+    <div class="crawl-map">
+      {% for page in run_data.crawl_result.pages %}
+      <div>
+        {% for i in range(page.depth) %}│  {% endfor %}
+        {% if page.depth > 0 %}├─ {% endif %}
+        <span class="{% if page.error %}crawl-error{% else %}crawl-url{% endif %}">
+          {{ page.url }}
+          {% if page.title %}<span style="color: var(--muted)"> — {{ page.title }}</span>{% endif %}
+          {% if page.error %}<span style="color: var(--fail)"> [ERROR: {{ page.error[:60] }}]</span>{% endif %}
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+    {% if run_data.crawl_result.errors %}
+    <details style="margin-top: 12px;">
+      <summary>Crawl Errors ({{ run_data.crawl_result.errors | length }})</summary>
+      <pre>{{ run_data.crawl_result.errors | join('\n') }}</pre>
+    </details>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- DEBUG LOGS -->
+  {% if run_data.execution_result %}
+  <div class="card">
+    <h2>Debug Logs</h2>
+    <details>
+      <summary>Raw pytest output</summary>
+      <pre>{{ run_data.execution_result.stdout | e }}</pre>
+    </details>
+    {% if run_data.execution_result.stderr %}
+    <details style="margin-top: 8px;">
+      <summary>pytest stderr</summary>
+      <pre style="color: var(--fail);">{{ run_data.execution_result.stderr | e }}</pre>
+    </details>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div style="text-align: center; color: var(--muted); font-size: 12px; margin-top: 24px; padding-bottom: 24px;">
+    Generated by AutonomousQA Agent • {{ run_data.run_id }}
+  </div>
+
+</div>
+</body>
+</html>
