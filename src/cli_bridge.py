@@ -162,7 +162,7 @@ class PlaywrightCLI:
                     "--timeout",
                     str(timeout_ms),
                 ],
-                timeout=timeout_ms / 1000 + 30,
+                timeout=timeout_ms / 1000 + 5,
             )
 
             actions_recorded = 0
@@ -221,9 +221,11 @@ class PlaywrightCLI:
                     "open",
                     f"--save-har={har_path}",
                     f"--save-har-glob={glob}",
+                    "--timeout",
+                    str(int(timeout * 1000)),
                     url,
                 ],
-                timeout=timeout + 15,
+                timeout=timeout + 5,
             )
 
             request_count = 0

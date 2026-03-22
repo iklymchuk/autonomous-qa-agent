@@ -95,14 +95,14 @@ class TestExecutor:
         traces_dir = run_dir / "traces"
         traces_dir.mkdir(parents=True, exist_ok=True)
 
-        json_report_path = run_dir / "pytest_raw.json"
+        json_report_path = (run_dir / "pytest_raw.json").resolve()
 
         # Build pytest command
         cmd: list[str] = [
             sys.executable,
             "-m",
             "pytest",
-            str(suite.file_path),
+            str(suite.file_path.resolve()),
             "-v",
             "--tb=short",
             "--json-report",

@@ -7,7 +7,6 @@
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
 [![Playwright](https://img.shields.io/badge/playwright-1.49-green.svg)](https://playwright.dev/)
 [![OpenAI](https://img.shields.io/badge/openai-gpt--4o--mini-412991.svg)](https://platform.openai.com/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
 ---
 

@@ -8,9 +8,9 @@ install-browsers:
 
 demo:
 	@echo "Starting demo app and running QA agent..."
-	poetry run python demo/sample_app/app.py &
+	FLASK_PORT=5001 poetry run python demo/sample_app/app.py &
 	sleep 2
-	poetry run qa-agent run --url http://localhost:5000 --a11y
+	poetry run qa-agent run --url http://localhost:5001
 	@pkill -f "demo/sample_app/app.py" || true
 
 test:
