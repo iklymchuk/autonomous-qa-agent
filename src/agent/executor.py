@@ -108,15 +108,11 @@ class TestExecutor:
             "--json-report",
             f"--json-report-file={json_report_path}",
             "--timeout=30",
+            "-p", "no:base_url",  # disable pytest-base-url: conflicts with generated base_url fixture
         ]
 
-        # Add browser flags for pytest-playwright
-        for browser in config.browsers:
-            cmd.extend(["--browser", browser])
-
-        if config.headless:
+        if not config.headless:
             cmd.append("--headed")
-            # playwright pytest plugin uses --headed to mean headed; we want headless default
 
         logger.info("Running pytest: %s", " ".join(cmd))
 

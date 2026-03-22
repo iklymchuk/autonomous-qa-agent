@@ -136,52 +136,79 @@ class PlaywrightCLI:
 
     async def codegen(self, url: str, output_path: Path, timeout_ms: int = 15000) -> CodegenResult:
         """
-        Run playwright codegen to record a user session scaffold.
+        Generate a headless interaction scaffold by crawling the page with the Python API.
 
-        Runs in headed mode briefly then closes. The output Python file is used
-        as context for AI flow inference.
+        Replaces the interactive `playwright codegen` CLI (which requires a human).
+        Visits the URL headlessly, extracts interactive elements, and writes a minimal
+        Playwright scaffold script for use as AI flow inference context.
 
         Args:
             url: Target URL to open
             output_path: Path to write the generated Python test file
-            timeout_ms: How long to keep the browser open (ms)
+            timeout_ms: Page load timeout in ms
 
         Returns:
             CodegenResult with script path and approximate action count
         """
+        from playwright.async_api import async_playwright
+
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        logger.info("Running codegen against %s → %s", url, output_path)
+        logger.info("Running codegen scaffold (headless) for %s → %s", url, output_path)
 
         try:
-            _, stdout, stderr = await self._run(
-                [
-                    "codegen",
-                    url,
-                    "--output",
-                    str(output_path),
-                    "--timeout",
-                    str(timeout_ms),
-                ],
-                timeout=timeout_ms / 1000 + 5,
-            )
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+                page = await browser.new_page()
+                await page.goto(url, wait_until="networkidle", timeout=timeout_ms)
 
-            actions_recorded = 0
-            if output_path.exists():
-                content = output_path.read_text()
-                # Count approximate actions by counting page.* calls
-                actions_recorded = content.count("page.")
+                elements = await page.evaluate("""() => {
+                    const items = [];
+                    document.querySelectorAll('input[type=text], input[type=email], input[type=password], textarea, select').forEach(el => {
+                        const id = el.id ? '#' + el.id : null;
+                        items.push({type: 'fill', selector: id || el.tagName.toLowerCase(), label: el.placeholder || el.name || ''});
+                    });
+                    document.querySelectorAll('button, input[type=submit], input[type=button]').forEach(el => {
+                        const id = el.id ? '#' + el.id : null;
+                        items.push({type: 'click', selector: id || el.tagName.toLowerCase(), label: (el.textContent || el.value || '').trim()});
+                    });
+                    document.querySelectorAll('a[href]').forEach(el => {
+                        const href = el.getAttribute('href');
+                        if (href && !href.startsWith('#') && !href.startsWith('http')) {
+                            items.push({type: 'goto', selector: href, label: (el.textContent || '').trim()});
+                        }
+                    });
+                    return items.slice(0, 30);
+                }""")
+
+                await browser.close()
+
+            lines = [
+                "# Auto-generated scaffold (headless crawl)",
+                "from playwright.sync_api import Page, expect",
+                "",
+                f'def test_scaffold(page: Page) -> None:',
+                f'    page.goto("{url}")',
+            ]
+            for el in elements:
+                if el["type"] == "fill":
+                    lines.append(f'    page.fill("{el["selector"]}", "test")  # {el["label"]}')
+                elif el["type"] == "click":
+                    lines.append(f'    # page.click("{el["selector"]}")  # {el["label"]}')
+                else:
+                    lines.append(f'    # page.goto("{url}{el["selector"]}")  # {el["label"]}')
+
+            script = "\n".join(lines) + "\n"
+            output_path.write_text(script)
 
             return CodegenResult(
                 script_path=output_path,
-                actions_recorded=actions_recorded,
-                stdout=stdout,
-                stderr=stderr,
+                actions_recorded=len(elements),
+                stdout="",
+                stderr="",
             )
 
-        except PlaywrightCLIError as exc:
-            logger.warning("Codegen failed (non-fatal): %s", exc)
-            # Create empty script so downstream code always gets a file
-            output_path.parent.mkdir(parents=True, exist_ok=True)
+        except Exception as exc:
+            logger.warning("Codegen scaffold failed (non-fatal): %s", exc)
             output_path.write_text("# codegen failed — no scaffold available\n")
             return CodegenResult(
                 script_path=output_path,
@@ -198,42 +225,42 @@ class PlaywrightCLI:
         timeout: float = 30.0,
     ) -> HARResult:
         """
-        Capture HAR traffic file for the target URL.
+        Capture HAR traffic file for the target URL using the Playwright Python API.
 
-        Runs `playwright open --save-har=<path> --save-har-glob=<glob> <url>`
-        and waits for network idle before closing.
+        Uses headless Chromium with context.record_har_path — no headed browser needed.
 
         Args:
             url: Target URL
             har_path: Output path for the .har file
             glob: URL glob pattern to filter HAR capture
-            timeout: Seconds to keep browser open
+            timeout: Page load timeout in seconds
 
         Returns:
             HARResult with HAR path and request counts
         """
+        import json
+
+        from playwright.async_api import async_playwright
+
         har_path.parent.mkdir(parents=True, exist_ok=True)
         logger.info("Capturing HAR for %s → %s", url, har_path)
 
         try:
-            _, stdout, stderr = await self._run(
-                [
-                    "open",
-                    f"--save-har={har_path}",
-                    f"--save-har-glob={glob}",
-                    "--timeout",
-                    str(int(timeout * 1000)),
-                    url,
-                ],
-                timeout=timeout + 5,
-            )
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+                context = await browser.new_context(
+                    record_har_path=str(har_path),
+                    record_har_url_filter=glob,
+                )
+                page = await context.new_page()
+                await page.goto(url, wait_until="networkidle", timeout=int(timeout * 1000))
+                await context.close()  # flushes HAR to disk
+                await browser.close()
 
             request_count = 0
             api_request_count = 0
 
             if har_path.exists():
-                import json
-
                 try:
                     har_data = json.loads(har_path.read_text())
                     entries = har_data.get("log", {}).get("entries", [])
@@ -248,11 +275,11 @@ class PlaywrightCLI:
                 har_path=har_path,
                 request_count=request_count,
                 api_request_count=api_request_count,
-                stdout=stdout,
-                stderr=stderr,
+                stdout="",
+                stderr="",
             )
 
-        except PlaywrightCLIError as exc:
+        except Exception as exc:
             logger.warning("HAR capture failed (non-fatal): %s", exc)
             return HARResult(
                 har_path=har_path,

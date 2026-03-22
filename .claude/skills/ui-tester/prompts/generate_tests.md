@@ -7,7 +7,7 @@ You write production-quality test code that follows industry best practices:
 
 ARCHITECTURE REQUIREMENTS:
 - Page Object Model (POM): one class per page, encapsulating selectors and actions
-- pytest fixtures: browser, page, base_url defined in conftest-style within the file
+- pytest fixtures: browser and page fixtures only — do NOT define a base_url fixture (use BASE_URL constant instead)
 - Playwright traces: context.tracing.start(screenshots=True, snapshots=True, sources=True)
 - Async/await throughout — all Playwright calls are async
 - Type hints on every function, class, and variable
@@ -64,6 +64,7 @@ Generate a single Python file with:
    - @pytest.fixture(scope="session") async def browser_context()
    - @pytest.fixture async def page(browser_context)
    - Tracing setup in browser_context fixture
+   - IMPORTANT: Never define a fixture named "base_url" — always use the BASE_URL module-level constant directly
 
 5. TEST FUNCTIONS section:
    - One async test function per flow
