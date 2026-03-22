@@ -221,9 +221,9 @@ qa-agent install-browsers
 ## Demo output
 
 ```
-┌─────────────────────────────────────────────────────────┐
+┌───────────────────────────────────────────────────────-──┐
 │ QA Run Summary — run_20240115_143022                     │
-├──────────────────────────┬──────────────────────────────┤
+├──────────────────────────┬───────────────────────────-───┤
 │ URL                      │ http://localhost:5000         │
 │ Duration                 │ 47.2s                         │
 │ Pages Crawled            │ 6                             │
@@ -232,9 +232,9 @@ qa-agent install-browsers
 │ Passed                   │ 4                             │
 │ Failed                   │ 1                             │
 │ Pass Rate                │ 80.0%                         │
-│ Severity                 │ CRITICAL:0 HIGH:1 MEDIUM:0   │
+│ Severity                 │ CRITICAL:0 HIGH:1 MEDIUM:0    │
 │ WCAG Score               │ 85/100                        │
-└──────────────────────────┴──────────────────────────────┘
+└──────────────────────────┴───────────────────────────-───┘
 
 ✓ Report saved to: reports/run_20240115_143022/report.html
 ✓ JSON saved to:   reports/run_20240115_143022/report.json
@@ -265,7 +265,7 @@ reports/
 
 ---
 
-## SDET Design Decisions
+## Design Decisions
 
 ### 1. Two-layer Playwright: CLI + Python API
 
@@ -350,3 +350,7 @@ make typecheck  # mypy
 5. Submit a pull request with a clear description
 
 Coverage target: **80%+** (enforced in CI). All new modules require unit tests that mock external calls.
+
+---
+
+**Built with ❤️ by Ivan Klymchuk**
