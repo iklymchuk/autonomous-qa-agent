@@ -27,6 +27,12 @@ No test scripts are written by humans. The agent does it all.
 
 ---
 
+## Sample Report
+
+![AutonomousQA Report](docs/report-screenshot.png)
+
+---
+
 ## Quick Start
 
 ```bash

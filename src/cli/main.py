@@ -308,7 +308,7 @@ async def _full_run(
     _print_summary(run_data, html_path, json_path)
 
 
-def _print_summary(run_data: RunData, html_path: Path, json_path: Path) -> None:  # type: ignore[name-defined]
+def _print_summary(run_data: RunData, html_path: Path, json_path: Path) -> None:
     """Print the final run summary table."""
 
     exec_result = run_data.execution_result
