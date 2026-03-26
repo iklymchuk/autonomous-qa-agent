@@ -105,13 +105,12 @@ async def test_run_handles_timeout(
     executor: TestExecutor, config: AgentConfig, suite: GeneratedTestSuite, tmp_path: Path
 ) -> None:
     """run must not crash on asyncio.TimeoutError — returns empty ExecutionResult."""
-    import asyncio
     run_dir = tmp_path / "run_test"
     run_dir.mkdir()
 
     with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec:
         proc = MagicMock()
-        proc.communicate = AsyncMock(side_effect=asyncio.TimeoutError())
+        proc.communicate = AsyncMock(side_effect=TimeoutError())
         proc.kill = MagicMock()
         proc.wait = AsyncMock()
         mock_exec.return_value = proc

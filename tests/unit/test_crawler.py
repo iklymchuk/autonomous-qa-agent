@@ -8,7 +8,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.agent.crawler import SiteCrawler
-from src.models import DOMSnapshot
 
 
 @pytest.fixture

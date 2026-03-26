@@ -8,7 +8,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from src.agent.test_generator import TestGenerator, _count_test_functions, _extract_page_objects, _extract_python_code
+from src.agent.test_generator import (
+    TestGenerator,
+    _count_test_functions,
+    _extract_page_objects,
+    _extract_python_code,
+)
 from src.models import FlowStep, UserFlow
 
 VALID_PYTHON_CODE = '''

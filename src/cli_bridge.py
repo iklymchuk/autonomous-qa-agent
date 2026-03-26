@@ -68,7 +68,7 @@ class PlaywrightCLI:
                     proc.communicate(input=input_data),
                     timeout=timeout,
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 proc.kill()
                 await proc.wait()
                 raise PlaywrightCLIError(cmd_str, -1, f"Command timed out after {timeout}s")
@@ -186,7 +186,7 @@ class PlaywrightCLI:
                 "# Auto-generated scaffold (headless crawl)",
                 "from playwright.sync_api import Page, expect",
                 "",
-                f'def test_scaffold(page: Page) -> None:',
+                'def test_scaffold(page: Page) -> None:',
                 f'    page.goto("{url}")',
             ]
             for el in elements:

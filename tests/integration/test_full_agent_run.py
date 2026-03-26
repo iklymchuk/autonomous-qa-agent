@@ -13,6 +13,7 @@ import os
 import subprocess
 import sys
 import time
+from datetime import UTC
 from pathlib import Path
 
 import pytest
@@ -76,14 +77,14 @@ def run_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
 @pytest.mark.asyncio
 async def test_full_agent_run_creates_reports(demo_app_url: str, run_dir: Path) -> None:
     """Full agent run must create report.html and report.json."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from openai import AsyncOpenAI
 
     from src.agent.crawler import SiteCrawler
+    from src.agent.executor import TestExecutor
     from src.agent.flow_inferencer import FlowInferencer
     from src.agent.test_generator import TestGenerator
-    from src.agent.executor import TestExecutor
     from src.analysis.severity_scorer import SeverityScorer
     from src.cli_bridge import PlaywrightCLI
     from src.models import AgentConfig, RunData
@@ -104,7 +105,7 @@ async def test_full_agent_run_creates_reports(demo_app_url: str, run_dir: Path) 
     run_data = RunData(
         run_id=config.run_id,
         config=config,
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
         run_dir=run_dir / config.run_id,
     )
     (run_dir / config.run_id).mkdir(parents=True, exist_ok=True)
@@ -155,8 +156,7 @@ async def test_full_agent_run_creates_reports(demo_app_url: str, run_dir: Path) 
                 run_data.severity_breakdown[sev] += 1
 
     # Generate reports
-    from datetime import timezone
-    run_data.finished_at = datetime.now(timezone.utc)
+    run_data.finished_at = datetime.now(UTC)
     html_path = HTMLReporter().generate(run_data)
     json_path = JSONReporter().generate(run_data)
 
@@ -181,7 +181,7 @@ async def test_report_json_is_valid(run_dir: Path) -> None:
     assert "summary" in data
     assert "test_results" in data
     assert isinstance(data["summary"]["test_count"], int)
-    assert isinstance(data["summary"]["pass_rate"], (int, float))
+    assert isinstance(data["summary"]["pass_rate"], int | float)
 
 
 @pytest.mark.asyncio

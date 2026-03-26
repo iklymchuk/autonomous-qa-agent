@@ -135,7 +135,7 @@ class TestExecutor:
             logger.info("pytest exit code: %d", returncode)
             logger.debug("pytest stdout:\n%s", stdout[:3000])
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error("pytest timed out after 300s")
             stdout = ""
             stderr = "Timeout after 300s"

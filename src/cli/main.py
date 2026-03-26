@@ -9,11 +9,13 @@ import asyncio
 import json
 import logging
 import os
-import subprocess
 import webbrowser
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Annotated
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.models import RunData
 
 import typer
 from dotenv import load_dotenv
@@ -21,7 +23,6 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
-from rich import print as rprint
 
 load_dotenv()
 
@@ -45,7 +46,7 @@ def _setup_logging(level: str) -> None:
 
 def _make_run_id() -> str:
     """Generate a timestamped run ID."""
-    return f"run_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+    return f"run_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}"
 
 
 def _get_reports_dir() -> Path:
@@ -97,7 +98,7 @@ async def _full_run(
     run_data = RunData(
         run_id=config.run_id,
         config=config,
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
         run_dir=run_dir,
     )
 
@@ -282,7 +283,7 @@ async def _full_run(
 
         # STEP 12: Generate reports
         task = progress.add_task("[12/13] Generating reports...", total=None)
-        run_data.finished_at = datetime.now(timezone.utc)
+        run_data.finished_at = datetime.now(UTC)
         try:
             html_path = HTMLReporter().generate(run_data)
             json_path = JSONReporter().generate(run_data)
@@ -307,9 +308,8 @@ async def _full_run(
     _print_summary(run_data, html_path, json_path)
 
 
-def _print_summary(run_data: "RunData", html_path: Path, json_path: Path) -> None:  # type: ignore[name-defined]
+def _print_summary(run_data: RunData, html_path: Path, json_path: Path) -> None:  # type: ignore[name-defined]
     """Print the final run summary table."""
-    from src.models import RunData
 
     exec_result = run_data.execution_result
     total = exec_result.total if exec_result else 0

@@ -139,9 +139,7 @@ class VisualDiffer:
             change_pct = (changed_pixels / total_pixels) * 100 if total_pixels > 0 else 0.0
 
             # Create highlighted diff image: changed pixels → red
-            import PIL.ImageEnhance
 
-            enhanced = PIL.ImageEnhance.Contrast(diff_img).enhance(3.0)
             # Tint changed areas red by compositing
             red_overlay = Image.new("RGB", before_img.size, (255, 0, 0))
             mask = diff_img.convert("L")
