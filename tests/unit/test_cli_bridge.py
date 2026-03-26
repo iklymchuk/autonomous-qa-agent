@@ -65,21 +65,29 @@ async def test_install_browsers_calls_each_browser(cli: PlaywrightCLI) -> None:
 
 
 @pytest.mark.asyncio
-async def test_codegen_calls_correct_command(cli: PlaywrightCLI, tmp_path: Path) -> None:
-    """codegen must call `playwright codegen <url> --output <path> --timeout 15000`."""
+async def test_codegen_writes_scaffold(cli: PlaywrightCLI, tmp_path: Path) -> None:
+    """codegen must write a Python scaffold file using the headless Playwright API."""
     output = tmp_path / "codegen.py"
+    mock_page = AsyncMock()
+    mock_page.evaluate = AsyncMock(return_value=[
+        {"type": "fill", "selector": "#email", "label": "email"},
+        {"type": "click", "selector": "#submit", "label": "Submit"},
+    ])
+    mock_browser = AsyncMock()
+    mock_browser.new_page = AsyncMock(return_value=mock_page)
+    mock_chromium = AsyncMock()
+    mock_chromium.launch = AsyncMock(return_value=mock_browser)
+    mock_playwright = AsyncMock()
+    mock_playwright.chromium = mock_chromium
 
-    with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec:
-        mock_exec.return_value = make_mock_proc()
-        await cli.codegen("http://example.com", output)
+    with patch("playwright.async_api.async_playwright") as mock_pw_cls:
+        mock_pw_cls.return_value.__aenter__ = AsyncMock(return_value=mock_playwright)
+        mock_pw_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        result = await cli.codegen("http://example.com", output)
 
-    call_args = mock_exec.call_args[0]
-    assert call_args[0] == "playwright"
-    assert "codegen" in call_args
-    assert "http://example.com" in call_args
-    assert "--output" in call_args
-    assert "--timeout" in call_args
-    assert "15000" in call_args
+    assert output.exists()
+    assert result.script_path == output
+    assert result.actions_recorded == 2
 
 
 @pytest.mark.asyncio
@@ -87,8 +95,9 @@ async def test_codegen_handles_failure_gracefully(cli: PlaywrightCLI, tmp_path: 
     """codegen must not raise on failure — returns CodegenResult with empty script."""
     output = tmp_path / "codegen.py"
 
-    with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec:
-        mock_exec.return_value = make_mock_proc(stderr="timeout", returncode=1)
+    with patch("playwright.async_api.async_playwright") as mock_pw_cls:
+        mock_pw_cls.return_value.__aenter__ = AsyncMock(side_effect=Exception("connection refused"))
+        mock_pw_cls.return_value.__aexit__ = AsyncMock(return_value=False)
         result = await cli.codegen("http://example.com", output)
 
     assert result.script_path == output
@@ -97,18 +106,29 @@ async def test_codegen_handles_failure_gracefully(cli: PlaywrightCLI, tmp_path: 
 
 
 @pytest.mark.asyncio
-async def test_save_har_calls_correct_command(cli: PlaywrightCLI, tmp_path: Path) -> None:
-    """save_har must call playwright open with --save-har flag."""
+async def test_save_har_captures_traffic(cli: PlaywrightCLI, tmp_path: Path) -> None:
+    """save_har must capture traffic using the headless Playwright Python API."""
     har_path = tmp_path / "traffic.har"
+    har_path.write_text('{"log": {"entries": [{"request": {"url": "http://example.com/api/data"}}]}}')
 
-    with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec:
-        mock_exec.return_value = make_mock_proc()
-        await cli.save_har("http://example.com", har_path)
+    mock_page = AsyncMock()
+    mock_context = AsyncMock()
+    mock_context.new_page = AsyncMock(return_value=mock_page)
+    mock_browser = AsyncMock()
+    mock_browser.new_context = AsyncMock(return_value=mock_context)
+    mock_chromium = AsyncMock()
+    mock_chromium.launch = AsyncMock(return_value=mock_browser)
+    mock_playwright = AsyncMock()
+    mock_playwright.chromium = mock_chromium
 
-    call_args = mock_exec.call_args[0]
-    assert "open" in call_args
-    assert any("--save-har=" in str(a) for a in call_args)
-    assert "http://example.com" in call_args
+    with patch("playwright.async_api.async_playwright") as mock_pw_cls:
+        mock_pw_cls.return_value.__aenter__ = AsyncMock(return_value=mock_playwright)
+        mock_pw_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        result = await cli.save_har("http://example.com", har_path)
+
+    assert result.har_path == har_path
+    assert result.request_count == 1
+    assert result.api_request_count == 1
 
 
 @pytest.mark.asyncio
