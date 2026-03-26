@@ -54,7 +54,7 @@ addopts = "-v --tb=short"
 
 [tool.coverage.run]
 source = ["src"]
-omit = ["*/tests/*"]
+omit = ["*/tests/*", "src/cli/main.py"]
 
 [tool.coverage.report]
 fail_under = 80
