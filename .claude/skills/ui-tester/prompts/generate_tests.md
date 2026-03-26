@@ -24,8 +24,13 @@ PLAYWRIGHT-SPECIFIC REQUIREMENTS:
 - Use page.wait_for_load_state("networkidle") after navigation
 - Use page.locator() not page.querySelector()
 - Use expect(locator).to_be_visible() not locator.is_visible()
-- Trace context manager: wrap each test in try/finally to save trace on failure
 - Screenshots on failure via page.screenshot()
+- TRACING: tracing.start() and tracing.stop() are plain coroutines — call them with await, NOT as async context managers. Correct pattern:
+    await context.tracing.start(screenshots=True, snapshots=True, sources=True)
+    try:
+        # test body
+    finally:
+        await context.tracing.stop(path="trace.zip")
 
 You ALWAYS return a single, complete, syntactically valid Python file.
 No markdown code fences, no explanations — just the Python code.
@@ -61,10 +66,10 @@ Generate a single Python file with:
    - Methods return self for chaining where appropriate
 
 4. FIXTURES section:
-   - @pytest.fixture(scope="session") async def browser_context()
-   - @pytest.fixture async def page(browser_context)
-   - Tracing setup in browser_context fixture
+   - @pytest.fixture async def browser() — launches headless chromium, yields browser, closes it
+   - @pytest.fixture async def page(browser) — creates context + page, yields page, closes context
    - IMPORTANT: Never define a fixture named "base_url" — always use the BASE_URL module-level constant directly
+   - Do NOT set up tracing in fixtures — put tracing start/stop inside each test function
 
 5. TEST FUNCTIONS section:
    - One async test function per flow
